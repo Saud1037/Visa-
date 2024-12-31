@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visa Management</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f9;
+        }
+        .container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            width: 400px;
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .visa-list {
+            margin-top: 20px;
+        }
+        .visa-item {
+            background-color: #f0f8ff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .visa-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        button {
+            padding: 5px 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .delete-btn {
+            background-color: #ff4d4d;
+        }
+        .delete-btn:hover {
+            background-color: #cc0000;
+        }
+        .reset-btn {
+            background-color: #ffa500;
+        }
+        .reset-btn:hover {
+            background-color: #cc8400;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Visa Management</h2>
+        <form id="visaForm">
+            <div class="form-group">
+                <label for="cardNumber">Card Number:</label>
+                <input type="text" id="cardNumber" placeholder="Enter card number" required>
+            </div>
+            <div class="form-group">
+                <label for="cvc">CVC:</label>
+                <input type="number" id="cvc" placeholder="Enter CVC" required>
+            </div>
+            <button type="button" onclick="addVisa()">Add Visa</button>
+        </form>
+        <div class="visa-list" id="visaList"></div>
+    </div>
+
+    <script>
+        const visaTimers = {}; // Store timers for each visa
+
+        function addVisa() {
+            const cardNumber = document.getElementById('cardNumber').value;
+            const cvc = document.getElementById('cvc').value;
+
+            if (cardNumber && cvc) {
+                displayVisa(cardNumber, cvc, 15 * 60); // Add visa with a 15-minute timer
+                document.getElementById('cardNumber').value = '';
+                document.getElementById('cvc').value = '';
+            } else {
+                alert('Please fill out all fields!');
+            }
+        }
+
+        function displayVisa(cardNumber, cvc, duration) {
+            const visaList = document.getElementById('visaList');
+
+            // Create a container for the visa details
+            const visaItem = document.createElement('div');
+            visaItem.className = 'visa-item';
+
+            // Visa details
+            const visaDetails = `
+Card Number: ${cardNumber}
+CVC: ${cvc}
+Name: SAUD H. ALAZMI
+Expiration Date: 12/27
+Country: Saudi Arabia
+Address: Riyadh
+Postal Code: 31146`;
+
+            // Create a div to display visa details
+            const visaInfo = document.createElement('div');
+            visaInfo.innerHTML = visaDetails.replace(/\n/g, '<br>');
+
+            // Create a countdown display
+            const countdown = document.createElement('div');
+            countdown.textContent = formatTime(duration);
+
+            // Start the countdown
+            startCountdown(cardNumber, countdown, duration);
+
+            // Create controls (Copy, Reset Timer, Delete)
+            const controls = document.createElement('div');
+            controls.className = 'visa-controls';
+
+            const copyBtn = document.createElement('button');
+            copyBtn.textContent = 'Copy';
+            copyBtn.onclick = () => copyToClipboard(cardNumber, cvc, countdown);
+
+            const resetBtn = document.createElement('button');
+            resetBtn.textContent = 'Reset Timer';
+            resetBtn.className = 'reset-btn';
+            resetBtn.onclick = () => resetTimer(cardNumber, countdown);
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Delete';
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.onclick = () => {
+                clearInterval(visaTimers[cardNumber]);
+                delete visaTimers[cardNumber];
+                visaList.removeChild(visaItem);
+            };
+
+            controls.appendChild(copyBtn);
+            controls.appendChild(resetBtn);
+            controls.appendChild(deleteBtn);
+
+            visaItem.appendChild(visaInfo);
+            visaItem.appendChild(countdown);
+            visaItem.appendChild(controls);
+
+            visaList.appendChild(visaItem);
+        }
+
+        function startCountdown(cardNumber, display, duration) {
+            let timeLeft = duration;
+            const timer = setInterval(() => {
+                timeLeft--;
+                display.textContent = formatTime(timeLeft);
+
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    display.textContent = 'Expired';
+                }
+            }, 1000);
+
+            visaTimers[cardNumber] = timer;
+        }
+
+        function resetTimer(cardNumber, display) {
+            clearInterval(visaTimers[cardNumber]);
+            startCountdown(cardNumber, display, 15 * 60);
+        }
+
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+
+        function copyToClipboard(cardNumber, cvc, countdown) {
+            // Calculate Unix timestamp for 15 minutes from now
+            const currentTimestamp = Math.floor(Date.now() / 1000); // Current time in seconds
+            const expiryTimestamp = currentTimestamp + 15 * 60; // Add 15 minutes
+
+            // Generate full visa details with Discord timestamp
+            const visaDetails = `
+Card Number: ${cardNumber}
+CVC: ${cvc}
+Name: SAUD H. ALAZMI
+Expiration Date: 12/27
+Country: Saudi Arabia
+Address: Riyadh
+Postal Code: 31146
+Valid until: <t:${expiryTimestamp}:R>`;
+
+            // Copy to clipboard
+            const textarea = document.createElement('textarea');
+            textarea.value = visaDetails;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+
+            alert('Visa details copied to clipboard!');
+        }
+    </script>
+</body>
+</html>
